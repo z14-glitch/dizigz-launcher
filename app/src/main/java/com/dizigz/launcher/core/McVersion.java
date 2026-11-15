@@ -1,23 +1,28 @@
 package com.dizigz.launcher.core;
 
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
-/** Offline-профиль: ник + детерминированный UUID (как у ванильного offline-режима). */
-public final class OfflineProfile {
-    private static final Pattern NAME = Pattern.compile("^[A-Za-z0-9_]{3,16}$");
+/** Числовое сравнение id релизов: работает и для 1.8.9, и для новой схемы вида 26.1.2. */
+public final class McVersion {
+    private static final Pattern RELEASE = Pattern.compile("^\\d+(\\.\\d+){1,2}$");
 
-    public final String name;
-    public final UUID uuid;
+    private McVersion() {}
 
-    private OfflineProfile(String name, UUID uuid) { this.name = name; this.uuid = uuid; }
+    public static boolean isReleaseId(String id) { return id != null && RELEASE.matcher(id).matches(); }
 
-    public static boolean isValidName(String name) { return name != null && NAME.matcher(name).matches(); }
+    public static int compare(String a, String b) {
+        int[] x = parts(a), y = parts(b);
+        for (int k = 0; k < 3; k++) if (x[k] != y[k]) return Integer.compare(x[k], y[k]);
+        return 0;
+    }
 
-    public static OfflineProfile create(String name) {
-        if (!isValidName(name)) throw new IllegalArgumentException("Ник: 3–16 символов, только A-Z, a-z, 0-9, _");
-        UUID id = UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes(StandardCharsets.UTF_8));
-        return new OfflineProfile(name, id);
+    public static boolean atLeast(String id, String min) { return compare(id, min) >= 0; }
+
+    private static int[] parts(String id) {
+        if (!isReleaseId(id)) throw new IllegalArgumentException("Не релизная версия: " + id);
+        String[] p = id.split("\\.");
+        int[] r = new int[3];
+        for (int k = 0; k < p.length; k++) r[k] = Integer.parseInt(p[k]);
+        return r;
     }
 }
